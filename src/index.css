@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color: #1f2937;
+  background: #efe7df;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,0.9), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(255, 212, 166, 0.35), transparent 28%),
+    linear-gradient(135deg, #e7ddd3 0%, #d8c8bb 45%, #c8b19d 100%);
+  color: #1f2937;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 25px 70px rgba(124, 45, 18, 0.14);
+}
+
+.glass-soft {
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  box-shadow: 0 14px 35px rgba(124, 45, 18, 0.08);
+}
+
+.input-ui {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.4);
+  border-radius: 18px;
+  padding: 14px 16px;
+  outline: none;
+  color: #1f2937;
+}
+
+.input-ui::placeholder {
+  color: #6b7280;
+}
+
+.input-ui:focus {
+  border-color: rgba(251, 146, 60, 0.55);
+  box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.14);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #fb923c, #f97316);
+  color: white;
+  border: none;
+  border-radius: 18px;
+  padding: 12px 18px;
+  font-weight: 600;
+  box-shadow: 0 12px 28px rgba(249, 115, 22, 0.22);
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.38);
+  color: #334155;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 18px;
+  padding: 12px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+}
+
+.page-subtitle {
+  color: #334155;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.input-search {
+  padding-left: 46px !important;
+}
