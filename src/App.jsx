@@ -7,6 +7,7 @@ import Participants from "./pages/Participants";
 import Attendance from "./pages/Attendance";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
+import Games from "./pages/Games";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/participants" element={<Participants />} />
                 <Route path="/attendance" element={<Attendance />} />
+                <Route path="/games" element={<Games />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>

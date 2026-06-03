@@ -5,12 +5,14 @@ import {
   UserCheck,
   History,
   Settings,
+  Gamepad2,
 } from "lucide-react";
 
 const links = [
   { name: "Dashboard", path: "/", icon: LayoutDashboard },
   { name: "Participants", path: "/participants", icon: Users },
   { name: "Attendance", path: "/attendance", icon: UserCheck },
+  { name: "Games", path: "/games", icon: Gamepad2 },
   { name: "History", path: "/history", icon: History },
   { name: "Settings", path: "/settings", icon: Settings },
 ];
@@ -65,7 +67,7 @@ export default function Sidebar() {
       {/* MOBILE / TABLET BOTTOM NAV */}
       <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-50">
         <div className="glass-card rounded-3xl px-3 py-3">
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-6 gap-1">
             {links.map((link) => {
               const Icon = link.icon;
               const active = location.pathname === link.path;

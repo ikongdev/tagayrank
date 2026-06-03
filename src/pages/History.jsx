@@ -14,6 +14,8 @@ import {
   ReceiptText,
   Crown,
   Timer,
+  CheckCircle2,
+  Gamepad2,
 } from "lucide-react";
 
 export default function History() {
@@ -26,18 +28,6 @@ export default function History() {
       return [];
     }
   });
-
-  const getInitials = (person) => {
-  const sourceName = person?.fullName || `${person?.firstName || ""} ${person?.lastName || ""}`;
-  const parts = sourceName.trim().split(" ").filter(Boolean);
-
-  if (parts.length === 0) return "T";
-
-  const first = parts[0]?.charAt(0) || "";
-  const last = parts.length > 1 ? parts[parts.length - 1]?.charAt(0) : "";
-
-  return `${first}${last}`.toUpperCase() || "T";
-};
 
   const [selectedSession, setSelectedSession] = useState(null);
   const [search, setSearch] = useState("");
@@ -120,6 +110,20 @@ export default function History() {
     return `${hours} hr ${minutes} min`;
   };
 
+  const getInitials = (person) => {
+    const sourceName =
+      person?.fullName ||
+      `${person?.firstName || ""} ${person?.lastName || ""}`;
+    const parts = sourceName.trim().split(" ").filter(Boolean);
+
+    if (parts.length === 0) return "T";
+
+    const first = parts[0]?.charAt(0) || "";
+    const last = parts.length > 1 ? parts[parts.length - 1]?.charAt(0) : "";
+
+    return `${first}${last}`.toUpperCase() || "T";
+  };
+
   const filteredHistory = useMemo(() => {
     return history.filter((session) => {
       const searchableText = `
@@ -128,6 +132,8 @@ export default function History() {
         ${formatDateTime(session.endedAt)}
         ${session.topDrinker?.name || ""}
         ${session.topDrinker?.fullName || ""}
+        ${session.topAnswerer?.name || ""}
+        ${session.topAnswerer?.fullName || ""}
         ${(session.participants || [])
           .map(
             (person) =>
@@ -147,13 +153,13 @@ export default function History() {
     0
   );
 
-  const lifetimeBill = history.reduce(
-    (sum, session) => sum + Number(session.totalBill || 0),
+  const lifetimeAnswered = history.reduce(
+    (sum, session) => sum + Number(session.totalAnswered || 0),
     0
   );
 
-  const totalHistoryParticipants = history.reduce(
-    (sum, session) => sum + Number(session.totalPresent || 0),
+  const lifetimeBill = history.reduce(
+    (sum, session) => sum + Number(session.totalBill || 0),
     0
   );
 
@@ -180,13 +186,34 @@ export default function History() {
     setSelectedSession(null);
   };
 
+  const getAnsweredRanking = (session) => {
+    if (session.answeredRanking && session.answeredRanking.length > 0) {
+      return session.answeredRanking;
+    }
+
+    return [...(session.participants || [])]
+      .sort(
+        (a, b) =>
+          Number(b.answeredQuestions || 0) - Number(a.answeredQuestions || 0)
+      )
+      .map((person, index) => ({
+        ...person,
+        rank: index + 1,
+        name: person.nickname || person.firstName,
+        fullName: `${person.firstName} ${person.middleName || ""} ${
+          person.lastName
+        }`,
+      }));
+  };
+
   return (
     <div>
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
           <h1 className="page-title">History</h1>
           <p className="page-subtitle">
-            Review saved TagayRank sessions, rankings, expenses, and totals.
+            Review saved TagayRank sessions, rankings, game scores, expenses,
+            and totals.
           </p>
         </div>
 
@@ -204,9 +231,7 @@ export default function History() {
         <div className="glass-soft rounded-3xl p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-600 font-semibold">
-                Sessions
-              </p>
+              <p className="text-sm text-slate-600 font-semibold">Sessions</p>
               <h2 className="text-3xl font-extrabold text-slate-900 mt-1">
                 {totalSavedSessions}
               </h2>
@@ -239,15 +264,15 @@ export default function History() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-600 font-semibold">
-                Total Present
+                Answered
               </p>
               <h2 className="text-3xl font-extrabold text-slate-900 mt-1">
-                {totalHistoryParticipants}
+                {lifetimeAnswered}
               </h2>
             </div>
 
             <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center text-slate-700">
-              <Users size={22} />
+              <CheckCircle2 size={22} />
             </div>
           </div>
         </div>
@@ -303,7 +328,8 @@ export default function History() {
             No matching sessions
           </h2>
           <p className="text-slate-700 mt-2 font-medium">
-            Try searching by date, participant name, section, or top drinker.
+            Try searching by date, participant name, section, top drinker, or
+            top answerer.
           </p>
         </div>
       ) : (
@@ -346,9 +372,9 @@ export default function History() {
                 </div>
 
                 <div className="bg-white/45 rounded-2xl p-3">
-                  <p className="text-xs text-slate-500 font-bold">Towers</p>
+                  <p className="text-xs text-slate-500 font-bold">Answered</p>
                   <p className="text-xl font-extrabold text-slate-900 mt-1">
-                    {session.towers || 0}
+                    {session.totalAnswered || 0}
                   </p>
                 </div>
 
@@ -360,29 +386,66 @@ export default function History() {
                 </div>
               </div>
 
-              <div className="bg-white/45 rounded-2xl p-4 mt-4">
-                <div className="flex items-center gap-3">
-                  {session.topDrinker?.photo ? (
-                    <img
-                      src={session.topDrinker.photo}
-                      alt={session.topDrinker.name}
-                      className="w-12 h-12 rounded-2xl object-cover border border-white/50 shadow-sm"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-2xl bg-orange-500/15 text-orange-600 flex items-center justify-center font-extrabold shadow-sm">
-                      {session.topDrinker ? getInitials(session.topDrinker) : <Crown size={20} />}
-                    </div>
-                  )}
+              <div className="space-y-3 mt-4">
+                <div className="bg-white/45 rounded-2xl p-4">
+                  <div className="flex items-center gap-3">
+                    {session.topDrinker?.photo ? (
+                      <img
+                        src={session.topDrinker.photo}
+                        alt={session.topDrinker.name}
+                        className="w-12 h-12 rounded-2xl object-cover border border-white/50 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-2xl bg-orange-500/15 text-orange-600 flex items-center justify-center font-extrabold shadow-sm">
+                        {session.topDrinker ? (
+                          getInitials(session.topDrinker)
+                        ) : (
+                          <Crown size={20} />
+                        )}
+                      </div>
+                    )}
 
-                  <div>
-                    <p className="text-xs text-slate-500 font-bold">
-                      Top Drinker
-                    </p>
-                    <p className="font-extrabold text-slate-900">
-                      {session.topDrinker
-                        ? `${session.topDrinker.name} (${session.topDrinker.drinks})`
-                        : "No one yet"}
-                    </p>
+                    <div>
+                      <p className="text-xs text-slate-500 font-bold">
+                        Top Drinker
+                      </p>
+                      <p className="font-extrabold text-slate-900">
+                        {session.topDrinker
+                          ? `${session.topDrinker.name} (${session.topDrinker.drinks})`
+                          : "No one yet"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/45 rounded-2xl p-4">
+                  <div className="flex items-center gap-3">
+                    {session.topAnswerer?.photo ? (
+                      <img
+                        src={session.topAnswerer.photo}
+                        alt={session.topAnswerer.name}
+                        className="w-12 h-12 rounded-2xl object-cover border border-white/50 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-2xl bg-white/70 text-slate-800 flex items-center justify-center font-extrabold shadow-sm">
+                        {session.topAnswerer ? (
+                          getInitials(session.topAnswerer)
+                        ) : (
+                          <Gamepad2 size={20} />
+                        )}
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="text-xs text-slate-500 font-bold">
+                        Top Answerer
+                      </p>
+                      <p className="font-extrabold text-slate-900">
+                        {session.topAnswerer
+                          ? `${session.topAnswerer.name} (${session.topAnswerer.answeredQuestions})`
+                          : "No one yet"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -412,7 +475,7 @@ export default function History() {
       {selectedSession &&
         createPortal(
           <div className="fixed inset-0 z-9999 bg-black/25 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="glass-card w-full max-w-5xl rounded-3xl p-6 md:p-7 max-h-[90vh] overflow-y-auto my-auto">
+            <div className="glass-card w-full max-w-5xl rounded-4xl p-6 md:p-7 max-h-[90vh] overflow-y-auto my-auto">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <h2 className="text-2xl font-extrabold text-slate-900">
@@ -457,21 +520,21 @@ export default function History() {
 
                 <div className="bg-white/45 rounded-2xl p-4">
                   <div className="flex items-center gap-2 text-slate-600">
-                    <Users size={17} />
-                    <p className="text-sm font-bold">Present</p>
-                  </div>
-                  <p className="text-3xl font-extrabold text-slate-900 mt-2">
-                    {selectedSession.totalPresent || 0}
-                  </p>
-                </div>
-
-                <div className="bg-white/45 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 text-slate-600">
                     <Beer size={17} />
                     <p className="text-sm font-bold">Drinks</p>
                   </div>
                   <p className="text-3xl font-extrabold text-orange-600 mt-2">
                     {selectedSession.totalDrinks || 0}
+                  </p>
+                </div>
+
+                <div className="bg-white/45 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <CheckCircle2 size={17} />
+                    <p className="text-sm font-bold">Answered</p>
+                  </div>
+                  <p className="text-3xl font-extrabold text-slate-900 mt-2">
+                    {selectedSession.totalAnswered || 0}
                   </p>
                 </div>
               </div>
@@ -482,7 +545,7 @@ export default function History() {
                     <div className="flex items-center gap-3 mb-4">
                       <Trophy className="text-orange-500" size={22} />
                       <h3 className="text-xl font-extrabold text-slate-900">
-                        Final Ranking
+                        Final Drink Ranking
                       </h3>
                     </div>
 
@@ -497,7 +560,7 @@ export default function History() {
                             key={`${person.id}-${person.rank}`}
                             className="bg-white/50 rounded-2xl p-3 flex items-center justify-between gap-3"
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
                               <div className="relative w-11 h-11 shrink-0">
                                 {person.photo ? (
                                   <img
@@ -522,18 +585,75 @@ export default function History() {
                                 </div>
                               </div>
 
-                              <div>
-                                <p className="font-extrabold text-slate-900">
+                              <div className="min-w-0">
+                                <p className="font-extrabold text-slate-900 truncate">
                                   {person.name}
                                 </p>
-                                <p className="text-xs text-slate-600">
+                                <p className="text-xs text-slate-600 truncate">
                                   {person.section}
                                 </p>
                               </div>
                             </div>
 
-                            <p className="text-xl font-extrabold text-orange-600">
+                            <p className="text-xl font-extrabold text-orange-600 shrink-0">
                               {person.drinks}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-white/45 rounded-3xl p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <CheckCircle2 className="text-orange-500" size={22} />
+                      <h3 className="text-xl font-extrabold text-slate-900">
+                        Answered Ranking
+                      </h3>
+                    </div>
+
+                    {getAnsweredRanking(selectedSession).length === 0 ? (
+                      <p className="text-sm text-slate-700 font-medium">
+                        No answered ranking saved.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {getAnsweredRanking(selectedSession).map((person) => (
+                          <div
+                            key={`${person.id}-answered-${person.rank}`}
+                            className="bg-white/50 rounded-2xl p-3 flex items-center justify-between gap-3"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="relative w-11 h-11 shrink-0">
+                                {person.photo ? (
+                                  <img
+                                    src={person.photo}
+                                    alt={person.name}
+                                    className="w-11 h-11 rounded-xl object-cover border border-white/50 shadow-sm"
+                                  />
+                                ) : (
+                                  <div className="w-11 h-11 rounded-xl bg-white/70 flex items-center justify-center font-extrabold text-slate-800">
+                                    {getInitials(person)}
+                                  </div>
+                                )}
+
+                                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white shadow flex items-center justify-center text-xs font-bold">
+                                  {person.rank}
+                                </div>
+                              </div>
+
+                              <div className="min-w-0">
+                                <p className="font-extrabold text-slate-900 truncate">
+                                  {person.name}
+                                </p>
+                                <p className="text-xs text-slate-600 truncate">
+                                  {person.section}
+                                </p>
+                              </div>
+                            </div>
+
+                            <p className="text-xl font-extrabold text-slate-900 shrink-0">
+                              {person.answeredQuestions || 0}
                             </p>
                           </div>
                         ))}
@@ -577,11 +697,15 @@ export default function History() {
                                 {person.nickname || person.firstName}
                               </p>
                               <p className="text-sm text-slate-700 font-medium truncate">
-                                {person.firstName} {person.middleName} {person.lastName}
+                                {person.firstName} {person.middleName}{" "}
+                                {person.lastName}
                               </p>
                               <p className="text-xs text-slate-600 mt-1 truncate">
-                                {person.section} · {person.drinks} drink
-                                {Number(person.drinks || 0) === 1 ? "" : "s"}
+                                {person.section} · {person.drinks || 0} drink
+                                {Number(person.drinks || 0) === 1
+                                  ? ""
+                                  : "s"}{" "}
+                                · {person.answeredQuestions || 0} answered
                               </p>
                             </div>
                           </div>

@@ -428,14 +428,20 @@ export default function Dashboard() {
                     className="flex items-center justify-between bg-white/45 rounded-2xl p-3"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      {person.photo ? (
-                        <img
-                          src={person.photo}
-                          alt={person.nickname || person.firstName}
-                          className="w-10 h-10 rounded-xl object-cover border border-white/50 shadow-sm shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-xl bg-white/70 flex items-center justify-center font-extrabold text-slate-800 shrink-0">
+                      <div className="relative w-12 h-12 shrink-0">
+                        {person.photo ? (
+                          <img
+                            src={person.photo}
+                            alt={person.nickname || person.firstName}
+                            className="w-12 h-12 rounded-2xl object-cover border border-white/50 shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-2xl bg-white/70 text-slate-800 flex items-center justify-center font-extrabold shadow-sm">
+                            {getInitials(person)}
+                          </div>
+                        )}
+
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white shadow flex items-center justify-center text-xs font-bold">
                           {index === 0
                             ? "🥇"
                             : index === 1
@@ -444,17 +450,10 @@ export default function Dashboard() {
                             ? "🥉"
                             : index + 1}
                         </div>
-                      )}
+                      </div>
 
                       <div className="min-w-0">
                         <p className="font-bold text-slate-900 truncate">
-                          {index === 0
-                            ? "🥇 "
-                            : index === 1
-                            ? "🥈 "
-                            : index === 2
-                            ? "🥉 "
-                            : `${index + 1}. `}
                           {person.nickname || person.firstName}
                         </p>
                         <p className="text-xs text-slate-600 truncate">

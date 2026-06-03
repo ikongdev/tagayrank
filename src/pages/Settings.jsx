@@ -7,6 +7,7 @@ import {
   Save,
   Clock,
   AlertTriangle,
+  Gamepad2,
 } from "lucide-react";
 
 const defaultSession = () => ({
@@ -17,6 +18,12 @@ const defaultSession = () => ({
   expenses: [],
   startedAt: new Date().toISOString(),
 });
+
+const defaultGameState = {
+  usedTruthIds: [],
+  usedDareIds: [],
+  usedAnswerIds: [],
+};
 
 export default function Settings() {
   const [participants, setParticipants] = useState(() => {
@@ -31,17 +38,20 @@ export default function Settings() {
 
   const [session, setSession] = useState(() => {
     const saved = localStorage.getItem("tagayrank-session");
+    const fallback = defaultSession();
 
     try {
-      return saved
-        ? {
-            ...defaultSession(),
-            ...JSON.parse(saved),
-            startedAt: JSON.parse(saved).startedAt || new Date().toISOString(),
-          }
-        : defaultSession();
+      if (!saved) return fallback;
+
+      const parsed = JSON.parse(saved);
+
+      return {
+        ...fallback,
+        ...parsed,
+        startedAt: parsed.startedAt || new Date().toISOString(),
+      };
     } catch {
-      return defaultSession();
+      return fallback;
     }
   });
 
@@ -80,10 +90,22 @@ export default function Settings() {
     );
   }, [presentParticipants]);
 
+  const answeredRanking = useMemo(() => {
+    return [...presentParticipants].sort(
+      (a, b) =>
+        Number(b.answeredQuestions || 0) - Number(a.answeredQuestions || 0)
+    );
+  }, [presentParticipants]);
+
   const totalPresent = presentParticipants.length;
 
   const totalDrinks = presentParticipants.reduce(
     (sum, person) => sum + Number(person.drinks || 0),
+    0
+  );
+
+  const totalAnswered = presentParticipants.reduce(
+    (sum, person) => sum + Number(person.answeredQuestions || 0),
     0
   );
 
@@ -103,6 +125,7 @@ export default function Settings() {
       : 0;
 
   const topDrinker = rankedParticipants[0];
+  const topAnswerer = answeredRanking[0];
 
   const formatDateTime = (value) => {
     if (!value) return "Not set";
@@ -116,9 +139,13 @@ export default function Settings() {
     });
   };
 
+  const resetGameStorage = () => {
+    localStorage.setItem("tagayrank-game", JSON.stringify(defaultGameState));
+  };
+
   const resetCurrentSession = () => {
     const confirmed = confirm(
-      "Reset current session? This will reset attendance, drinks, towers, tower price, and expenses. Participants will stay saved."
+      "Reset current session? This will reset attendance, drinks, game scores, towers, tower price, and expenses. Participants will stay saved."
     );
 
     if (!confirmed) return;
@@ -128,10 +155,12 @@ export default function Settings() {
         ...person,
         present: false,
         drinks: 0,
+        answeredQuestions: 0,
       }))
     );
 
     setSession(defaultSession());
+    resetGameStorage();
   };
 
   const resetAttendanceOnly = () => {
@@ -160,8 +189,21 @@ export default function Settings() {
     );
   };
 
+  const resetGameScoresOnly = () => {
+    const confirmed = confirm("Reset all answered question counts to 0?");
+
+    if (!confirmed) return;
+
+    setParticipants((prev) =>
+      prev.map((person) => ({
+        ...person,
+        answeredQuestions: 0,
+      }))
+    );
+  };
+
   const clearExpensesOnly = () => {
-    const confirmed = confirm("Clear tower price and other expenses?");
+    const confirmed = confirm("Clear towers, tower price, and other expenses?");
 
     if (!confirmed) return;
 
@@ -175,9 +217,19 @@ export default function Settings() {
     }));
   };
 
+  const resetUsedGameQuestions = () => {
+    const confirmed = confirm(
+      "Reset used game questions? This allows questions to appear again."
+    );
+
+    if (!confirmed) return;
+
+    resetGameStorage();
+  };
+
   const endSessionAndSaveToHistory = () => {
     const confirmed = confirm(
-      "End this session and save it to History? After saving, attendance, drinks, towers, and expenses will reset for a new session."
+      "End this session and save it to History? After saving, attendance, drinks, game scores, towers, and expenses will reset for a new session."
     );
 
     if (!confirmed) return;
@@ -189,27 +241,50 @@ export default function Settings() {
       sessionDate: new Date(session.startedAt).toISOString(),
       startedAt: session.startedAt,
       endedAt,
+
       totalPresent,
       totalDrinks,
+      totalAnswered,
+
       towers: Number(session.towers || 0),
       towerPrice: Number(session.towerPrice || 0),
       towerSubtotal,
+
       expenses: session.expenses,
       expensesTotal,
       totalBill,
       perHead,
-      topDrinker: topDrinker
-      ? {
-          id: topDrinker.id,
-          name: topDrinker.nickname || topDrinker.firstName,
-          fullName: `${topDrinker.firstName} ${topDrinker.middleName || ""} ${
-            topDrinker.lastName
-          }`,
-          section: topDrinker.section,
-          drinks: Number(topDrinker.drinks || 0),
-          photo: topDrinker.photo || "",
-        }
-      : null,
+
+      topDrinker:
+        topDrinker && Number(topDrinker.drinks || 0) > 0
+          ? {
+              id: topDrinker.id,
+              name: topDrinker.nickname || topDrinker.firstName,
+              fullName: `${topDrinker.firstName} ${
+                topDrinker.middleName || ""
+              } ${topDrinker.lastName}`,
+              section: topDrinker.section,
+              drinks: Number(topDrinker.drinks || 0),
+              answeredQuestions: Number(topDrinker.answeredQuestions || 0),
+              photo: topDrinker.photo || "",
+            }
+          : null,
+
+      topAnswerer:
+        topAnswerer && Number(topAnswerer.answeredQuestions || 0) > 0
+          ? {
+              id: topAnswerer.id,
+              name: topAnswerer.nickname || topAnswerer.firstName,
+              fullName: `${topAnswerer.firstName} ${
+                topAnswerer.middleName || ""
+              } ${topAnswerer.lastName}`,
+              section: topAnswerer.section,
+              drinks: Number(topAnswerer.drinks || 0),
+              answeredQuestions: Number(topAnswerer.answeredQuestions || 0),
+              photo: topAnswerer.photo || "",
+            }
+          : null,
+
       participants: presentParticipants.map((person) => ({
         id: person.id,
         firstName: person.firstName,
@@ -219,9 +294,11 @@ export default function Settings() {
         section: person.section,
         bookingPinLocation: person.bookingPinLocation,
         drinks: Number(person.drinks || 0),
+        answeredQuestions: Number(person.answeredQuestions || 0),
         present: person.present,
         photo: person.photo || "",
       })),
+
       ranking: rankedParticipants.map((person, index) => ({
         rank: index + 1,
         id: person.id,
@@ -231,6 +308,20 @@ export default function Settings() {
         }`,
         section: person.section,
         drinks: Number(person.drinks || 0),
+        answeredQuestions: Number(person.answeredQuestions || 0),
+        photo: person.photo || "",
+      })),
+
+      answeredRanking: answeredRanking.map((person, index) => ({
+        rank: index + 1,
+        id: person.id,
+        name: person.nickname || person.firstName,
+        fullName: `${person.firstName} ${person.middleName || ""} ${
+          person.lastName
+        }`,
+        section: person.section,
+        drinks: Number(person.drinks || 0),
+        answeredQuestions: Number(person.answeredQuestions || 0),
         photo: person.photo || "",
       })),
     };
@@ -242,10 +333,12 @@ export default function Settings() {
         ...person,
         present: false,
         drinks: 0,
+        answeredQuestions: 0,
       }))
     );
 
     setSession(defaultSession());
+    resetGameStorage();
   };
 
   return (
@@ -254,7 +347,8 @@ export default function Settings() {
         <div>
           <h1 className="page-title">Settings</h1>
           <p className="page-subtitle">
-            Manage session controls, reset options, and history saving.
+            Manage session controls, reset options, game scores, and history
+            saving.
           </p>
         </div>
 
@@ -352,11 +446,27 @@ export default function Settings() {
               </button>
 
               <button
+                onClick={resetGameScoresOnly}
+                className="btn-secondary inline-flex items-center justify-center gap-2"
+              >
+                <Gamepad2 size={18} />
+                Reset Game Scores
+              </button>
+
+              <button
                 onClick={clearExpensesOnly}
                 className="btn-secondary inline-flex items-center justify-center gap-2"
               >
                 <ReceiptText size={18} />
                 Clear Expenses
+              </button>
+
+              <button
+                onClick={resetUsedGameQuestions}
+                className="btn-secondary inline-flex items-center justify-center gap-2"
+              >
+                <RotateCcw size={18} />
+                Reset Used Questions
               </button>
             </div>
           </div>
@@ -387,6 +497,15 @@ export default function Settings() {
                 </p>
                 <p className="text-xl font-extrabold text-orange-600">
                   {totalDrinks}
+                </p>
+              </div>
+
+              <div className="bg-white/45 rounded-2xl p-4 flex items-center justify-between">
+                <p className="text-sm text-slate-600 font-semibold">
+                  Answered Questions
+                </p>
+                <p className="text-xl font-extrabold text-slate-900">
+                  {totalAnswered}
                 </p>
               </div>
 
@@ -425,6 +544,20 @@ export default function Settings() {
                   {topDrinker && Number(topDrinker.drinks || 0) > 0
                     ? `${topDrinker.nickname || topDrinker.firstName} (${
                         topDrinker.drinks
+                      })`
+                    : "No one yet"}
+                </p>
+              </div>
+
+              <div className="bg-white/45 rounded-2xl p-4">
+                <p className="text-sm text-slate-600 font-semibold">
+                  Top Answerer
+                </p>
+                <p className="text-xl font-extrabold text-slate-900 mt-1">
+                  {topAnswerer &&
+                  Number(topAnswerer.answeredQuestions || 0) > 0
+                    ? `${topAnswerer.nickname || topAnswerer.firstName} (${
+                        topAnswerer.answeredQuestions
                       })`
                     : "No one yet"}
                 </p>
