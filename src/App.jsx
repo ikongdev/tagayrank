@@ -16,7 +16,7 @@ function App() {
           <Sidebar />
 
           <main className="flex-1 px-3 py-4 pb-28 lg:px-6 lg:py-6 lg:pb-6">
-            <div className="glass-card min-h-[88vh] lg:min-h-[92vh] rounded-[28px] lg:rounded-[36px] p-4 md:p-6 lg:p-8">
+            <div className="glass-card min-h-[88vh] lg:min-h-[92vh] rounded-3xl lg:rounded-3xl p-4 md:p-6 lg:p-8">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/participants" element={<Participants />} />

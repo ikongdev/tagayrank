@@ -14,6 +14,7 @@ import {
   Flame,
   Trash2,
   ReceiptText,
+  Search,
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -36,6 +37,7 @@ export default function Dashboard() {
       expenseName: "",
       expensePrice: "",
       expenses: [],
+      startedAt: new Date().toISOString(),
     };
 
     try {
@@ -51,6 +53,7 @@ export default function Dashboard() {
   });
 
   const [selectedParticipant, setSelectedParticipant] = useState(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     localStorage.setItem(
@@ -66,6 +69,21 @@ export default function Dashboard() {
   const presentParticipants = useMemo(() => {
     return participants.filter((person) => person.present);
   }, [participants]);
+
+  const filteredPresentParticipants = useMemo(() => {
+    return presentParticipants.filter((person) => {
+      const searchableText = `
+        ${person.firstName}
+        ${person.middleName}
+        ${person.lastName}
+        ${person.nickname}
+        ${person.section}
+        ${person.bookingPinLocation}
+      `.toLowerCase();
+
+      return searchableText.includes(search.toLowerCase());
+    });
+  }, [presentParticipants, search]);
 
   const rankedParticipants = useMemo(() => {
     return [...presentParticipants].sort(
@@ -106,6 +124,13 @@ export default function Dashboard() {
     totalPresent > 0 && totalBillNumber > 0
       ? (totalBillNumber / totalPresent).toFixed(2)
       : "0.00";
+
+  const getInitials = (person) => {
+    const first = person.firstName?.charAt(0) || "";
+    const last = person.lastName?.charAt(0) || "";
+
+    return `${first}${last}`.toUpperCase() || "T";
+  };
 
   const updateDrink = (id, amount) => {
     setParticipants((prev) =>
@@ -279,8 +304,25 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_0.8fr] gap-6">
         <div>
+          <div className="glass-soft rounded-3xl p-4 mb-5">
+            <div className="relative">
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+              />
+
+              <input
+                type="text"
+                placeholder="Search present participants..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input-ui input-search"
+              />
+            </div>
+          </div>
+
           {presentParticipants.length === 0 ? (
-            <div className="glass-soft rounded-[28px] p-10 text-center">
+            <div className="glass-soft rounded-3xl p-10 text-center">
               <h2 className="text-xl font-bold text-slate-900">
                 No present participants yet
               </h2>
@@ -288,36 +330,59 @@ export default function Dashboard() {
                 Go to Attendance and mark participants as Present first.
               </p>
             </div>
+          ) : filteredPresentParticipants.length === 0 ? (
+            <div className="glass-soft rounded-3xl p-10 text-center">
+              <h2 className="text-xl font-bold text-slate-900">
+                No matching participants
+              </h2>
+              <p className="text-slate-700 mt-2 font-medium">
+                Try searching another name, nickname, section, or location.
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5">
-              {presentParticipants.map((person) => {
+              {filteredPresentParticipants.map((person) => {
                 const badges = getBadges(person);
 
                 return (
                   <button
                     key={person.id}
                     onClick={() => setSelectedParticipant(person)}
-                    className="glass-soft rounded-[28px] p-5 text-left transition hover:-translate-y-0.5"
+                    className="glass-soft rounded-3xl p-5 text-left transition hover:-translate-y-0.5"
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h2 className="text-xl font-extrabold text-slate-900">
-                          {person.nickname || person.firstName}
-                        </h2>
+                      <div className="flex items-center gap-4 min-w-0">
+                        {person.photo ? (
+                          <img
+                            src={person.photo}
+                            alt={person.nickname || person.firstName}
+                            className="w-14 h-14 rounded-2xl object-cover border border-white/50 shadow-sm shrink-0"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-2xl bg-orange-500/15 text-orange-600 flex items-center justify-center font-extrabold shadow-sm shrink-0">
+                            {getInitials(person)}
+                          </div>
+                        )}
 
-                        <p className="text-sm text-slate-700 mt-1 font-medium">
-                          {person.section}
-                        </p>
+                        <div className="min-w-0">
+                          <h2 className="text-xl font-extrabold text-slate-900 truncate">
+                            {person.nickname || person.firstName}
+                          </h2>
+
+                          <p className="text-sm text-slate-700 mt-1 font-medium truncate">
+                            {person.section}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="bg-orange-500 text-white rounded-2xl px-3 py-2 text-sm font-bold flex items-center gap-2 shadow-lg">
+                      <div className="bg-orange-500 text-white rounded-2xl px-3 py-2 text-sm font-bold flex items-center gap-2 shadow-lg shrink-0">
                         <Beer size={16} />
                         {person.drinks}
                       </div>
                     </div>
 
                     <div className="mt-5">
-                      <p className="text-[11px] uppercase tracking-wide text-slate-500 font-bold">
+                      <p className="text-xs uppercase tracking-wide text-slate-500 font-bold">
                         Full Name
                       </p>
                       <p className="text-sm text-slate-800 mt-1 font-medium">
@@ -343,7 +408,7 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-5">
-          <div className="glass-soft rounded-[28px] p-5">
+          <div className="glass-soft rounded-3xl p-5">
             <div className="flex items-center gap-3 mb-5">
               <Trophy className="text-orange-500" size={22} />
               <h2 className="text-xl font-extrabold text-slate-900">
@@ -362,28 +427,43 @@ export default function Dashboard() {
                     key={person.id}
                     className="flex items-center justify-between bg-white/45 rounded-2xl p-3"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-white/70 flex items-center justify-center font-extrabold text-slate-800">
-                        {index === 0
-                          ? "🥇"
-                          : index === 1
-                          ? "🥈"
-                          : index === 2
-                          ? "🥉"
-                          : index + 1}
-                      </div>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {person.photo ? (
+                        <img
+                          src={person.photo}
+                          alt={person.nickname || person.firstName}
+                          className="w-10 h-10 rounded-xl object-cover border border-white/50 shadow-sm shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-white/70 flex items-center justify-center font-extrabold text-slate-800 shrink-0">
+                          {index === 0
+                            ? "🥇"
+                            : index === 1
+                            ? "🥈"
+                            : index === 2
+                            ? "🥉"
+                            : index + 1}
+                        </div>
+                      )}
 
-                      <div>
-                        <p className="font-bold text-slate-900">
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900 truncate">
+                          {index === 0
+                            ? "🥇 "
+                            : index === 1
+                            ? "🥈 "
+                            : index === 2
+                            ? "🥉 "
+                            : `${index + 1}. `}
                           {person.nickname || person.firstName}
                         </p>
-                        <p className="text-xs text-slate-600">
+                        <p className="text-xs text-slate-600 truncate">
                           {person.section}
                         </p>
                       </div>
                     </div>
 
-                    <div className="font-extrabold text-orange-600">
+                    <div className="font-extrabold text-orange-600 shrink-0">
                       {person.drinks}
                     </div>
                   </div>
@@ -392,7 +472,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="glass-soft rounded-[28px] p-5">
+          <div className="glass-soft rounded-3xl p-5">
             <h2 className="text-xl font-extrabold text-slate-900 mb-5">
               Tower Counter
             </h2>
@@ -423,7 +503,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="glass-soft rounded-[28px] p-5">
+          <div className="glass-soft rounded-3xl p-5">
             <div className="flex items-center gap-3 mb-5">
               <Wallet className="text-orange-500" size={22} />
               <h2 className="text-xl font-extrabold text-slate-900">
@@ -560,7 +640,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="glass-soft rounded-[28px] p-5">
+          <div className="glass-soft rounded-3xl p-5">
             <h2 className="text-xl font-extrabold text-slate-900 mb-5">
               Badges
             </h2>
@@ -597,35 +677,52 @@ export default function Dashboard() {
       {selectedParticipant &&
         createPortal(
           <div className="fixed inset-0 z-9999 bg-black/25 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="glass-card w-full max-w-lg rounded-4xl p-6 md:p-7 max-h-[90vh] overflow-y-auto my-auto">
+            <div className="glass-card w-full max-w-lg rounded-3xl p-6 md:p-7 max-h-[90vh] overflow-y-auto my-auto">
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-extrabold text-slate-900">
-                    {selectedParticipant.nickname ||
-                      selectedParticipant.firstName}
-                  </h2>
+                <div className="flex items-center gap-4 min-w-0">
+                  {selectedParticipant.photo ? (
+                    <img
+                      src={selectedParticipant.photo}
+                      alt={
+                        selectedParticipant.nickname ||
+                        selectedParticipant.firstName
+                      }
+                      className="w-20 h-20 rounded-3xl object-cover border border-white/60 shadow-lg shrink-0"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-3xl bg-orange-500/15 text-orange-600 flex items-center justify-center font-extrabold text-2xl shadow-sm shrink-0">
+                      {getInitials(selectedParticipant)}
+                    </div>
+                  )}
 
-                  <p className="text-slate-700 font-medium mt-1">
-                    {selectedParticipant.firstName}{" "}
-                    {selectedParticipant.middleName}{" "}
-                    {selectedParticipant.lastName}
-                  </p>
+                  <div className="min-w-0">
+                    <h2 className="text-2xl font-extrabold text-slate-900 truncate">
+                      {selectedParticipant.nickname ||
+                        selectedParticipant.firstName}
+                    </h2>
 
-                  <p className="text-sm text-slate-600 mt-1">
-                    {selectedParticipant.section}
-                  </p>
+                    <p className="text-slate-700 font-medium mt-1">
+                      {selectedParticipant.firstName}{" "}
+                      {selectedParticipant.middleName}{" "}
+                      {selectedParticipant.lastName}
+                    </p>
+
+                    <p className="text-sm text-slate-600 mt-1">
+                      {selectedParticipant.section}
+                    </p>
+                  </div>
                 </div>
 
                 <button
                   onClick={() => setSelectedParticipant(null)}
-                  className="w-10 h-10 rounded-2xl bg-white/60 flex items-center justify-center text-slate-800 hover:bg-white/80"
+                  className="w-10 h-10 rounded-2xl bg-white/60 flex items-center justify-center text-slate-800 hover:bg-white/80 shrink-0"
                 >
                   <X size={18} />
                 </button>
               </div>
 
               <div className="mt-6 bg-white/45 rounded-2xl p-4">
-                <p className="text-[11px] uppercase tracking-wide text-slate-500 font-bold">
+                <p className="text-xs uppercase tracking-wide text-slate-500 font-bold">
                   Booking Pin Location
                 </p>
 

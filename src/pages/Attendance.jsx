@@ -72,6 +72,13 @@ export default function Attendance() {
     return fullText.includes(search.toLowerCase());
   });
 
+  const getInitials = (person) => {
+    const first = person.firstName?.charAt(0) || "";
+    const last = person.lastName?.charAt(0) || "";
+
+    return `${first}${last}`.toUpperCase() || "T";
+  };
+
   const totalParticipants = participants.length;
   const totalPresent = participants.filter((person) => person.present).length;
   const totalAbsent = totalParticipants - totalPresent;
@@ -128,9 +135,7 @@ export default function Attendance() {
         <div className="glass-soft rounded-3xl p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-600 font-semibold">
-                Present
-              </p>
+              <p className="text-sm text-slate-600 font-semibold">Present</p>
               <h2 className="text-3xl font-extrabold text-green-600 mt-1">
                 {totalPresent}
               </h2>
@@ -145,9 +150,7 @@ export default function Attendance() {
         <div className="glass-soft rounded-3xl p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-600 font-semibold">
-                Absent
-              </p>
+              <p className="text-sm text-slate-600 font-semibold">Absent</p>
               <h2 className="text-3xl font-extrabold text-red-500 mt-1">
                 {totalAbsent}
               </h2>
@@ -160,7 +163,7 @@ export default function Attendance() {
         </div>
       </div>
 
-      <div className="glass-soft rounded-[28px] p-4 mb-6">
+      <div className="glass-soft rounded-3xl p-4 mb-6">
         <div className="relative">
           <Search
             size={18}
@@ -178,7 +181,7 @@ export default function Attendance() {
       </div>
 
       {participants.length === 0 ? (
-        <div className="glass-soft rounded-[28px] p-10 text-center">
+        <div className="glass-soft rounded-3xl p-10 text-center">
           <h2 className="text-xl font-bold text-slate-900">
             No participants yet
           </h2>
@@ -187,7 +190,7 @@ export default function Attendance() {
           </p>
         </div>
       ) : filteredParticipants.length === 0 ? (
-        <div className="glass-soft rounded-[28px] p-10 text-center">
+        <div className="glass-soft rounded-3xl p-10 text-center">
           <h2 className="text-xl font-bold text-slate-900">
             No matching participants
           </h2>
@@ -200,25 +203,39 @@ export default function Attendance() {
           {filteredParticipants.map((person) => (
             <div
               key={person.id}
-              className="glass-soft rounded-[28px] p-5 transition hover:-translate-y-0.5"
+              className="glass-soft rounded-3xl p-5 transition hover:-translate-y-0.5"
             >
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">
-                    {person.nickname || person.firstName}
-                  </h2>
+                <div className="flex items-center gap-4 min-w-0">
+                  {person.photo ? (
+                    <img
+                      src={person.photo}
+                      alt={person.nickname || person.firstName}
+                      className="w-14 h-14 rounded-2xl object-cover border border-white/50 shadow-sm shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl bg-orange-500/15 text-orange-600 flex items-center justify-center font-extrabold shadow-sm shrink-0">
+                      {getInitials(person)}
+                    </div>
+                  )}
 
-                  <p className="text-sm text-slate-700 mt-1 font-medium">
-                    {person.firstName} {person.lastName}
-                  </p>
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-extrabold text-slate-900 truncate">
+                      {person.nickname || person.firstName}
+                    </h2>
 
-                  <p className="text-sm text-slate-600 mt-1">
-                    {person.section}
-                  </p>
+                    <p className="text-sm text-slate-700 mt-1 font-medium truncate">
+                      {person.firstName} {person.lastName}
+                    </p>
+
+                    <p className="text-sm text-slate-600 mt-1 truncate">
+                      {person.section}
+                    </p>
+                  </div>
                 </div>
 
                 <span
-                  className={`px-3 py-2 rounded-2xl text-xs font-extrabold ${
+                  className={`px-3 py-2 rounded-2xl text-xs font-extrabold shrink-0 ${
                     person.present
                       ? "bg-green-500/15 text-green-700"
                       : "bg-red-500/15 text-red-600"

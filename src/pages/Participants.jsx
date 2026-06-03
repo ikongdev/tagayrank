@@ -1,6 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus, Trash2, MapPin, Beer, Search, Pencil } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  MapPin,
+  Beer,
+  Search,
+  Pencil,
+  Camera,
+  ImagePlus,
+  X,
+} from "lucide-react";
 
 const emptyForm = {
   firstName: "",
@@ -9,6 +19,51 @@ const emptyForm = {
   nickname: "",
   section: "",
   bookingPinLocation: "",
+  photo: "",
+};
+
+const resizeImage = (file, maxSize = 400, quality = 0.75) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      const img = new Image();
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxSize) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedImage = canvas.toDataURL("image/jpeg", quality);
+        resolve(compressedImage);
+      };
+
+      img.onerror = reject;
+      img.src = event.target.result;
+    };
+
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 };
 
 export default function Participants() {
@@ -27,6 +82,9 @@ export default function Participants() {
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
 
+  const uploadInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
   useEffect(() => {
     localStorage.setItem(
       "tagayrank-participants",
@@ -39,6 +97,37 @@ export default function Participants() {
       ...form,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file.");
+      return;
+    }
+
+    try {
+      const compressedPhoto = await resizeImage(file);
+
+      setForm((prev) => ({
+        ...prev,
+        photo: compressedPhoto,
+      }));
+    } catch {
+      alert("Something went wrong while processing the photo.");
+    }
+
+    e.target.value = "";
+  };
+
+  const removePhoto = () => {
+    setForm((prev) => ({
+      ...prev,
+      photo: "",
+    }));
   };
 
   const openAddModal = () => {
@@ -57,6 +146,7 @@ export default function Participants() {
       nickname: person.nickname || "",
       section: person.section || "",
       bookingPinLocation: person.bookingPinLocation || "",
+      photo: person.photo || "",
     });
 
     setShowModal(true);
@@ -123,6 +213,13 @@ export default function Participants() {
     return fullText.includes(search.toLowerCase());
   });
 
+  const getInitials = (person) => {
+    const first = person.firstName?.charAt(0) || "";
+    const last = person.lastName?.charAt(0) || "";
+
+    return `${first}${last}`.toUpperCase() || "T";
+  };
+
   return (
     <>
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
@@ -142,7 +239,7 @@ export default function Participants() {
         </button>
       </div>
 
-      <div className="glass-soft rounded-[28px] p-4 mb-6">
+      <div className="glass-soft rounded-3xl p-4 mb-6">
         <div className="relative">
           <Search
             size={18}
@@ -160,7 +257,7 @@ export default function Participants() {
       </div>
 
       {participants.length === 0 ? (
-        <div className="glass-soft rounded-[28px] p-10 text-center">
+        <div className="glass-soft rounded-3xl p-10 text-center">
           <h2 className="text-xl font-bold text-slate-900">
             No participants yet
           </h2>
@@ -169,7 +266,7 @@ export default function Participants() {
           </p>
         </div>
       ) : filteredParticipants.length === 0 ? (
-        <div className="glass-soft rounded-[28px] p-10 text-center">
+        <div className="glass-soft rounded-3xl p-10 text-center">
           <h2 className="text-xl font-bold text-slate-900">
             No matching participants
           </h2>
@@ -182,17 +279,31 @@ export default function Participants() {
           {filteredParticipants.map((person) => (
             <div
               key={person.id}
-              className="glass-soft rounded-[28px] p-5 transition hover:-translate-y-0.5"
+              className="glass-soft rounded-3xl p-5 transition hover:-translate-y-0.5"
             >
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">
-                    {person.nickname || person.firstName}
-                  </h2>
+                <div className="flex items-center gap-4">
+                  {person.photo ? (
+                    <img
+                      src={person.photo}
+                      alt={person.nickname || person.firstName}
+                      className="w-14 h-14 rounded-2xl object-cover border border-white/50 shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl bg-orange-500/15 text-orange-600 flex items-center justify-center font-extrabold shadow-sm">
+                      {getInitials(person)}
+                    </div>
+                  )}
 
-                  <p className="text-sm text-slate-700 mt-1 font-medium">
-                    {person.section}
-                  </p>
+                  <div>
+                    <h2 className="text-xl font-extrabold text-slate-900">
+                      {person.nickname || person.firstName}
+                    </h2>
+
+                    <p className="text-sm text-slate-700 mt-1 font-medium">
+                      {person.section}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="bg-white/70 text-orange-600 rounded-2xl px-3 py-2 text-sm font-bold flex items-center gap-2 shadow-sm">
@@ -203,7 +314,7 @@ export default function Participants() {
 
               <div className="mt-5 space-y-4">
                 <div>
-                  <p className="text-[11px] uppercase tracking-wide text-slate-500 font-bold">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-bold">
                     Full Name
                   </p>
                   <p className="text-sm text-slate-800 mt-1 font-medium">
@@ -212,7 +323,7 @@ export default function Participants() {
                 </div>
 
                 <div>
-                  <p className="text-[11px] uppercase tracking-wide text-slate-500 font-bold">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-bold">
                     Booking Pin Location
                   </p>
 
@@ -282,7 +393,7 @@ export default function Participants() {
       {showModal &&
         createPortal(
           <div className="fixed inset-0 z-9999 bg-black/25 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="glass-card w-full max-w-xl rounded-4xl p-6 md:p-7 max-h-[90vh] overflow-y-auto my-auto">
+            <div className="glass-card w-full max-w-xl rounded-3xl p-6 md:p-7 max-h-[90vh] overflow-y-auto my-auto">
               <h2 className="text-2xl font-extrabold text-slate-900">
                 {editingId ? "Edit Participant" : "Add Participant"}
               </h2>
@@ -292,6 +403,71 @@ export default function Participants() {
                   ? "Update this participant's details."
                   : "Enter participant details for this session."}
               </p>
+
+              <div className="flex flex-col items-center mb-6">
+                {form.photo ? (
+                  <div className="relative">
+                    <img
+                      src={form.photo}
+                      alt="Participant preview"
+                      className="w-28 h-28 rounded-3xl object-cover border border-white/60 shadow-lg"
+                    />
+
+                    <button
+                      onClick={removePhoto}
+                      className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-28 h-28 rounded-3xl bg-orange-500/15 text-orange-600 flex items-center justify-center font-extrabold text-3xl shadow-sm">
+                    {form.firstName?.charAt(0) || "T"}
+                    {form.lastName?.charAt(0) || "R"}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mt-4">
+                  <button
+                    type="button"
+                    onClick={() => uploadInputRef.current?.click()}
+                    className="btn-secondary inline-flex items-center justify-center gap-2"
+                  >
+                    <ImagePlus size={18} />
+                    Upload Photo
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="btn-secondary inline-flex items-center justify-center gap-2"
+                  >
+                    <Camera size={18} />
+                    Open Camera
+                  </button>
+                </div>
+
+                <input
+                  ref={uploadInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                />
+
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                />
+
+                <p className="text-xs text-slate-600 mt-3 text-center">
+                  Photos are compressed before saving to keep the app light.
+                </p>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input

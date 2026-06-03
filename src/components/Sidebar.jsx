@@ -31,7 +31,7 @@ export default function Sidebar() {
               🍻
             </Link>
 
-            <div className="mt-3 text-[11px] text-slate-700 font-bold text-center leading-tight">
+            <div className="mt-3 text-xs text-slate-700 font-bold text-center leading-tight">
               Tagay
               <br />
               Rank
@@ -64,7 +64,7 @@ export default function Sidebar() {
 
       {/* MOBILE / TABLET BOTTOM NAV */}
       <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-50">
-        <div className="glass-card rounded-[28px] px-3 py-3">
+        <div className="glass-card rounded-3xl px-3 py-3">
           <div className="grid grid-cols-5 gap-2">
             {links.map((link) => {
               const Icon = link.icon;
@@ -82,7 +82,7 @@ export default function Sidebar() {
                 >
                   <Icon size={20} />
 
-                  <span className="text-[10px] font-bold leading-none">
+                  <span className="text-xs font-bold leading-none">
                     {link.name}
                   </span>
                 </Link>
