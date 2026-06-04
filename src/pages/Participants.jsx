@@ -8,9 +8,9 @@ import {
   Search,
   Pencil,
   Camera,
-  ImagePlus,
   X,
 } from "lucide-react";
+import { useAppDialog } from "../components/AppDialog";
 
 const emptyForm = {
   firstName: "",
@@ -40,11 +40,9 @@ const resizeImage = (file, maxSize = 400, quality = 0.75) => {
             height = Math.round((height * maxSize) / width);
             width = maxSize;
           }
-        } else {
-          if (height > maxSize) {
-            width = Math.round((width * maxSize) / height);
-            height = maxSize;
-          }
+        } else if (height > maxSize) {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
         }
 
         canvas.width = width;
@@ -82,8 +80,9 @@ export default function Participants() {
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
 
-  const uploadInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+
+  const { dialog, alertDialog, confirmDialog } = useAppDialog();
 
   useEffect(() => {
     localStorage.setItem(
@@ -105,7 +104,11 @@ export default function Participants() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file.");
+      await alertDialog({
+        title: "Invalid Photo",
+        message: "Please capture or select a valid image file.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -117,7 +120,11 @@ export default function Participants() {
         photo: compressedPhoto,
       }));
     } catch {
-      alert("Something went wrong while processing the photo.");
+      await alertDialog({
+        title: "Photo Error",
+        message: "Something went wrong while processing the photo.",
+        variant: "danger",
+      });
     }
 
     e.target.value = "";
@@ -158,9 +165,22 @@ export default function Participants() {
     setEditingId(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!form.photo) {
+      await alertDialog({
+        title: "Photo Required",
+        message: "Please add a participant photo using Open Camera before saving.",
+        variant: "warning",
+      });
+      return;
+    }
+
     if (!form.firstName || !form.lastName || !form.section) {
-      alert("Please fill out First Name, Last Name, and Section.");
+      await alertDialog({
+        title: "Missing Details",
+        message: "Please fill out First Name, Last Name, and Section.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -181,6 +201,7 @@ export default function Participants() {
         ...form,
         present: false,
         drinks: 0,
+        answeredQuestions: 0,
         badges: [],
       };
 
@@ -190,12 +211,17 @@ export default function Participants() {
     closeModal();
   };
 
-  const handleDelete = (id) => {
-    const confirmDelete = confirm(
-      "Are you sure you want to delete this participant?"
-    );
+  const handleDelete = async (id) => {
+    const confirmed = await confirmDialog({
+      title: "Delete Participant?",
+      message:
+        "This participant will be removed from the app. This action cannot be undone.",
+      variant: "danger",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+    });
 
-    if (!confirmDelete) return;
+    if (!confirmed) return;
 
     setParticipants((prev) => prev.filter((person) => person.id !== id));
   };
@@ -282,31 +308,31 @@ export default function Participants() {
               className="glass-soft rounded-3xl p-5 transition hover:-translate-y-0.5"
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 min-w-0">
                   {person.photo ? (
                     <img
                       src={person.photo}
                       alt={person.nickname || person.firstName}
-                      className="w-14 h-14 rounded-2xl object-cover border border-white/50 shadow-sm"
+                      className="w-14 h-14 rounded-2xl object-cover border border-white/50 shadow-sm shrink-0"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-2xl bg-orange-500/15 text-orange-600 flex items-center justify-center font-extrabold shadow-sm">
+                    <div className="w-14 h-14 rounded-2xl bg-orange-500/15 text-orange-600 flex items-center justify-center font-extrabold shadow-sm shrink-0">
                       {getInitials(person)}
                     </div>
                   )}
 
-                  <div>
-                    <h2 className="text-xl font-extrabold text-slate-900">
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-extrabold text-slate-900 truncate">
                       {person.nickname || person.firstName}
                     </h2>
 
-                    <p className="text-sm text-slate-700 mt-1 font-medium">
+                    <p className="text-sm text-slate-700 mt-1 font-medium truncate">
                       {person.section}
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-white/70 text-orange-600 rounded-2xl px-3 py-2 text-sm font-bold flex items-center gap-2 shadow-sm">
+                <div className="bg-white/70 text-orange-600 rounded-2xl px-3 py-2 text-sm font-bold flex items-center gap-2 shadow-sm shrink-0">
                   <Beer size={16} />
                   {person.drinks}
                 </div>
@@ -314,7 +340,7 @@ export default function Participants() {
 
               <div className="mt-5 space-y-4">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500 font-bold">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-500 font-bold">
                     Full Name
                   </p>
                   <p className="text-sm text-slate-800 mt-1 font-medium">
@@ -323,7 +349,7 @@ export default function Participants() {
                 </div>
 
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500 font-bold">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-500 font-bold">
                     Booking Pin Location
                   </p>
 
@@ -390,10 +416,12 @@ export default function Participants() {
         </div>
       )}
 
+      {dialog}
+
       {showModal &&
         createPortal(
           <div className="fixed inset-0 z-9999 bg-black/25 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="glass-card w-full max-w-xl rounded-3xl p-6 md:p-7 max-h-[90vh] overflow-y-auto my-auto">
+            <div className="glass-card w-full max-w-xl rounded-4xl p-6 md:p-7 max-h-[90vh] overflow-y-auto my-auto">
               <h2 className="text-2xl font-extrabold text-slate-900">
                 {editingId ? "Edit Participant" : "Add Participant"}
               </h2>
@@ -427,33 +455,14 @@ export default function Participants() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mt-4">
-                  <button
-                    type="button"
-                    onClick={() => uploadInputRef.current?.click()}
-                    className="btn-secondary inline-flex items-center justify-center gap-2"
-                  >
-                    <ImagePlus size={18} />
-                    Upload Photo
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => cameraInputRef.current?.click()}
-                    className="btn-secondary inline-flex items-center justify-center gap-2"
-                  >
-                    <Camera size={18} />
-                    Open Camera
-                  </button>
-                </div>
-
-                <input
-                  ref={uploadInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                />
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="btn-secondary w-full mt-4 inline-flex items-center justify-center gap-2"
+                >
+                  <Camera size={18} />
+                  Open Camera
+                </button>
 
                 <input
                   ref={cameraInputRef}
@@ -465,7 +474,8 @@ export default function Participants() {
                 />
 
                 <p className="text-xs text-slate-600 mt-3 text-center">
-                  Photos are compressed before saving to keep the app light.
+                  A participant photo is required. On mobile, this opens the
+                  camera. On laptop, it may open the file picker.
                 </p>
               </div>
 
@@ -518,7 +528,7 @@ export default function Participants() {
                     placeholder="Booking Pin Location"
                     value={form.bookingPinLocation}
                     onChange={handleChange}
-                    className="input-ui min-h-27.5 resize-none"
+                    className="input-ui min-h-28 resize-none"
                   />
                 </div>
               </div>

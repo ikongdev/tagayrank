@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Gamepad2,
 } from "lucide-react";
+import { useAppDialog } from "../components/AppDialog";
 
 const defaultSession = () => ({
   towers: 0,
@@ -23,6 +24,9 @@ const defaultGameState = {
   usedTruthIds: [],
   usedDareIds: [],
   usedAnswerIds: [],
+  pickedParticipantIds: [],
+  fairTurnMode: true,
+  extremeMode: false,
 };
 
 export default function Settings() {
@@ -64,6 +68,8 @@ export default function Settings() {
       return [];
     }
   });
+
+  const { dialog, confirmDialog } = useAppDialog();
 
   useEffect(() => {
     localStorage.setItem(
@@ -143,10 +149,15 @@ export default function Settings() {
     localStorage.setItem("tagayrank-game", JSON.stringify(defaultGameState));
   };
 
-  const resetCurrentSession = () => {
-    const confirmed = confirm(
-      "Reset current session? This will reset attendance, drinks, game scores, towers, tower price, and expenses. Participants will stay saved."
-    );
+  const resetCurrentSession = async () => {
+    const confirmed = await confirmDialog({
+      title: "Reset Full Session?",
+      message:
+        "This will reset attendance, drinks, game scores, towers, tower price, and expenses. Participants will stay saved.",
+      variant: "danger",
+      confirmText: "Reset Session",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
@@ -163,8 +174,14 @@ export default function Settings() {
     resetGameStorage();
   };
 
-  const resetAttendanceOnly = () => {
-    const confirmed = confirm("Set all participants as absent?");
+  const resetAttendanceOnly = async () => {
+    const confirmed = await confirmDialog({
+      title: "Reset Attendance?",
+      message: "All participants will be marked as absent.",
+      variant: "warning",
+      confirmText: "Reset Attendance",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
@@ -176,8 +193,14 @@ export default function Settings() {
     );
   };
 
-  const resetDrinksOnly = () => {
-    const confirmed = confirm("Reset all drink counts to 0?");
+  const resetDrinksOnly = async () => {
+    const confirmed = await confirmDialog({
+      title: "Reset Drinks?",
+      message: "All participant drink counts will be set back to 0.",
+      variant: "warning",
+      confirmText: "Reset Drinks",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
@@ -189,8 +212,14 @@ export default function Settings() {
     );
   };
 
-  const resetGameScoresOnly = () => {
-    const confirmed = confirm("Reset all answered question counts to 0?");
+  const resetGameScoresOnly = async () => {
+    const confirmed = await confirmDialog({
+      title: "Reset Game Scores?",
+      message: "All answered question counts will be set back to 0.",
+      variant: "warning",
+      confirmText: "Reset Scores",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
@@ -202,8 +231,15 @@ export default function Settings() {
     );
   };
 
-  const clearExpensesOnly = () => {
-    const confirmed = confirm("Clear towers, tower price, and other expenses?");
+  const clearExpensesOnly = async () => {
+    const confirmed = await confirmDialog({
+      title: "Clear Expenses?",
+      message:
+        "This will clear towers, tower price, and all other expenses for the current session.",
+      variant: "warning",
+      confirmText: "Clear Expenses",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
@@ -217,20 +253,29 @@ export default function Settings() {
     }));
   };
 
-  const resetUsedGameQuestions = () => {
-    const confirmed = confirm(
-      "Reset used game questions? This allows questions to appear again."
-    );
+  const resetUsedGameQuestions = async () => {
+    const confirmed = await confirmDialog({
+      title: "Reset Used Questions?",
+      message: "This allows previously shown game questions to appear again.",
+      variant: "warning",
+      confirmText: "Reset Questions",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
     resetGameStorage();
   };
 
-  const endSessionAndSaveToHistory = () => {
-    const confirmed = confirm(
-      "End this session and save it to History? After saving, attendance, drinks, game scores, towers, and expenses will reset for a new session."
-    );
+  const endSessionAndSaveToHistory = async () => {
+    const confirmed = await confirmDialog({
+      title: "End Session?",
+      message:
+        "This will save the current session to History, then reset attendance, drinks, game scores, towers, and expenses for a new session.",
+      variant: "warning",
+      confirmText: "Save & End Session",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
@@ -343,6 +388,8 @@ export default function Settings() {
 
   return (
     <div>
+      {dialog}
+
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
           <h1 className="page-title">Settings</h1>

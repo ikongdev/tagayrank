@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Gamepad2,
 } from "lucide-react";
+import { useAppDialog } from "../components/AppDialog";
 
 export default function History() {
   const [history, setHistory] = useState(() => {
@@ -31,6 +32,8 @@ export default function History() {
 
   const [selectedSession, setSelectedSession] = useState(null);
   const [search, setSearch] = useState("");
+
+  const { dialog, confirmDialog } = useAppDialog();
 
   useEffect(() => {
     localStorage.setItem("tagayrank-history", JSON.stringify(history));
@@ -163,8 +166,15 @@ export default function History() {
     0
   );
 
-  const deleteSession = (id) => {
-    const confirmed = confirm("Delete this saved session from history?");
+  const deleteSession = async (id) => {
+    const confirmed = await confirmDialog({
+      title: "Delete Session?",
+      message:
+        "This saved session will be removed from history. This action cannot be undone.",
+      variant: "danger",
+      confirmText: "Delete Session",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
@@ -175,10 +185,15 @@ export default function History() {
     }
   };
 
-  const clearHistory = () => {
-    const confirmed = confirm(
-      "Clear all saved session history? This cannot be undone."
-    );
+  const clearHistory = async () => {
+    const confirmed = await confirmDialog({
+      title: "Clear All History?",
+      message:
+        "All saved sessions will be deleted permanently from this device. This action cannot be undone.",
+      variant: "danger",
+      confirmText: "Clear History",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
@@ -208,6 +223,8 @@ export default function History() {
 
   return (
     <div>
+      {dialog}
+
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
           <h1 className="page-title">History</h1>
@@ -263,9 +280,7 @@ export default function History() {
         <div className="glass-soft rounded-3xl p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-600 font-semibold">
-                Answered
-              </p>
+              <p className="text-sm text-slate-600 font-semibold">Answered</p>
               <h2 className="text-3xl font-extrabold text-slate-900 mt-1">
                 {lifetimeAnswered}
               </h2>

@@ -20,13 +20,13 @@ const links = [
 export default function Sidebar() {
   return (
     <>
-      <aside className="hidden lg:flex w-24 min-h-screen p-4 shrink-0">
-        <div className="glass-card w-full rounded-3xl px-3 py-5 flex flex-col items-center">
-          <div className="mb-8">
+      <aside className="hidden lg:block w-24 shrink-0">
+        <div className="fixed left-4 top-4 z-50 w-16 rounded-3xl px-2 py-4 flex flex-col items-center bg-white border border-orange-100 shadow-xl">
+          <div className="mb-7">
             <img
               src="/logo.png"
               alt="TagayRank logo"
-              className="w-14 h-14 object-contain"
+              className="w-12 h-12 object-contain"
             />
           </div>
 
@@ -41,7 +41,6 @@ export default function Sidebar() {
                   title={link.name}
                   className={({ isActive }) =>
                     `
-                    group
                     relative
                     w-full
                     h-12
@@ -53,8 +52,8 @@ export default function Sidebar() {
                     duration-200
                     ${
                       isActive
-                        ? "bg-white/85 text-orange-600 shadow-[0_14px_30px_rgba(124,45,18,0.18)] -translate-y-0.5 scale-105"
-                        : "text-slate-700 hover:bg-white/55 hover:text-orange-600 hover:-translate-y-0.5"
+                        ? "bg-orange-50 text-orange-600 shadow-md -translate-y-0.5 scale-105"
+                        : "text-slate-700 hover:bg-orange-50 hover:text-orange-600 hover:-translate-y-0.5"
                     }
                     `
                   }
@@ -82,7 +81,7 @@ export default function Sidebar() {
       </aside>
 
       <nav className="lg:hidden fixed bottom-4 left-3 right-3 z-50">
-        <div className="glass-card rounded-3xl p-2 grid grid-cols-6 gap-1">
+        <div className="rounded-3xl p-2 grid grid-cols-6 gap-1 bg-white border border-orange-100 shadow-xl">
           {links.map((link) => {
             const Icon = link.icon;
 
@@ -104,8 +103,8 @@ export default function Sidebar() {
                   duration-200
                   ${
                     isActive
-                      ? "bg-white/85 text-orange-600 shadow-[0_10px_24px_rgba(124,45,18,0.16)] -translate-y-1 scale-105"
-                      : "text-slate-700 hover:bg-white/55 hover:text-orange-600"
+                      ? "bg-orange-50 text-orange-600 shadow-md -translate-y-1 scale-105"
+                      : "text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                   }
                   `
                 }

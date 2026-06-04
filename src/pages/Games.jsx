@@ -4,7 +4,6 @@ import {
   Beer,
   CheckCircle2,
   Gamepad2,
-  HelpCircle,
   RotateCw,
   Sparkles,
   Trophy,
@@ -23,6 +22,7 @@ import {
   extremeDarePrompts,
   extremeTruthQuestions,
 } from "../data/extremeQuestions";
+import { useAppDialog } from "../components/AppDialog";
 
 const wheelColors = [
   "#fb923c",
@@ -35,6 +35,8 @@ const wheelColors = [
   "#fb7185",
 ];
 
+const EXTREME_WEIGHT = 8;
+
 const defaultGameState = {
   usedTruthIds: [],
   usedDareIds: [],
@@ -42,6 +44,21 @@ const defaultGameState = {
   pickedParticipantIds: [],
   fairTurnMode: true,
   extremeMode: false,
+};
+
+const buildWeightedQuestionPool = (
+  normalQuestions,
+  extremeQuestions,
+  extremeMode
+) => {
+  if (!extremeMode) return normalQuestions;
+
+  return [
+    ...normalQuestions,
+    ...Array.from({ length: EXTREME_WEIGHT }).flatMap(
+      () => extremeQuestions
+    ),
+  ];
 };
 
 export default function Games() {
@@ -74,8 +91,11 @@ export default function Games() {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState(null);
-  const [modalStep, setModalStep] = useState("choice");
+  const [modalStep, setModalStep] = useState("picked");
   const [currentPrompt, setCurrentPrompt] = useState(null);
+  const [cardRevealed, setCardRevealed] = useState(false);
+
+  const { dialog, confirmDialog } = useAppDialog();
 
   useEffect(() => {
     localStorage.setItem(
@@ -93,21 +113,27 @@ export default function Games() {
   }, [participants]);
 
   const truthPool = useMemo(() => {
-    return gameState.extremeMode
-      ? [...truthQuestions, ...extremeTruthQuestions]
-      : truthQuestions;
+    return buildWeightedQuestionPool(
+      truthQuestions,
+      extremeTruthQuestions,
+      gameState.extremeMode
+    );
   }, [gameState.extremeMode]);
 
   const darePool = useMemo(() => {
-    return gameState.extremeMode
-      ? [...darePrompts, ...extremeDarePrompts]
-      : darePrompts;
+    return buildWeightedQuestionPool(
+      darePrompts,
+      extremeDarePrompts,
+      gameState.extremeMode
+    );
   }, [gameState.extremeMode]);
 
   const answerPool = useMemo(() => {
-    return gameState.extremeMode
-      ? [...answerOrDrinkQuestions, ...extremeAnswerOrDrinkQuestions]
-      : answerOrDrinkQuestions;
+    return buildWeightedQuestionPool(
+      answerOrDrinkQuestions,
+      extremeAnswerOrDrinkQuestions,
+      gameState.extremeMode
+    );
   }, [gameState.extremeMode]);
 
   const validPickedParticipantIds = useMemo(() => {
@@ -254,12 +280,13 @@ export default function Games() {
     setSpinning(true);
     setCurrentPrompt(null);
     setSelectedParticipant(null);
-    setModalStep("choice");
+    setCardRevealed(false);
+    setModalStep("picked");
     setRotation((prev) => prev + spinAmount);
 
     setTimeout(() => {
       setSelectedParticipant(selected);
-      setModalStep(mode === "truthOrDare" ? "choice" : "picked");
+      setModalStep("picked");
       setSpinning(false);
     }, 2500);
   };
@@ -267,50 +294,52 @@ export default function Games() {
   const handleReSpin = () => {
     setSelectedParticipant(null);
     setCurrentPrompt(null);
-    setModalStep("choice");
+    setCardRevealed(false);
+    setModalStep("picked");
 
     setTimeout(() => {
       startSpin();
     }, 80);
   };
 
-  const chooseTruth = () => {
-    const prompt = getRandomPrompt(truthPool, "usedTruthIds");
+  const revealCard = () => {
+    let prompt;
 
-    setCurrentPrompt({
-      ...prompt,
-      promptType: "Truth",
-    });
+    if (mode === "truthOrDare") {
+      const randomType = Math.random() < 0.5 ? "Truth" : "Dare";
 
+      if (randomType === "Truth") {
+        prompt = {
+          ...getRandomPrompt(truthPool, "usedTruthIds"),
+          promptType: "Truth",
+        };
+      } else {
+        prompt = {
+          ...getRandomPrompt(darePool, "usedDareIds"),
+          promptType: "Dare",
+        };
+      }
+    } else {
+      prompt = {
+        ...getRandomPrompt(answerPool, "usedAnswerIds"),
+        promptType: "Question",
+      };
+    }
+
+    setCurrentPrompt(prompt);
+    setCardRevealed(false);
     setModalStep("question");
-  };
 
-  const chooseDare = () => {
-    const prompt = getRandomPrompt(darePool, "usedDareIds");
-
-    setCurrentPrompt({
-      ...prompt,
-      promptType: "Dare",
-    });
-
-    setModalStep("question");
-  };
-
-  const revealAnswerOrDrinkQuestion = () => {
-    const prompt = getRandomPrompt(answerPool, "usedAnswerIds");
-
-    setCurrentPrompt({
-      ...prompt,
-      promptType: "Question",
-    });
-
-    setModalStep("question");
+    setTimeout(() => {
+      setCardRevealed(true);
+    }, 100);
   };
 
   const closeModal = () => {
     setSelectedParticipant(null);
     setCurrentPrompt(null);
-    setModalStep("choice");
+    setCardRevealed(false);
+    setModalStep("picked");
   };
 
   const answerPrompt = () => {
@@ -351,10 +380,14 @@ export default function Games() {
     closeModal();
   };
 
-  const resetUsedQuestions = () => {
-    const confirmed = confirm(
-      "Reset used game questions? This allows questions to appear again."
-    );
+  const resetUsedQuestions = async () => {
+    const confirmed = await confirmDialog({
+      title: "Reset Used Questions?",
+      message: "Previously shown game questions may appear again after this.",
+      variant: "warning",
+      confirmText: "Reset Questions",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
@@ -366,10 +399,15 @@ export default function Games() {
     }));
   };
 
-  const resetTurnPool = () => {
-    const confirmed = confirm(
-      "Reset the fair turn pool? Everyone can be picked again."
-    );
+  const resetTurnPool = async () => {
+    const confirmed = await confirmDialog({
+      title: "Reset Turn Pool?",
+      message:
+        "Everyone will become available again in Fair Turn Mode. Scores and drinks will not be changed.",
+      variant: "warning",
+      confirmText: "Reset Pool",
+      cancelText: "Cancel",
+    });
 
     if (!confirmed) return;
 
@@ -400,14 +438,18 @@ export default function Games() {
       : remainingParticipants.length
     : presentParticipants.length;
 
+  const primaryActionLabel =
+    currentPrompt?.promptType === "Dare" ? "Done" : "Answer";
+
   return (
     <div>
+      {dialog}
+
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
           <h1 className="page-title">Games</h1>
           <p className="page-subtitle">
-            Spin the wheel, pick a player, and play Truth or Dare or Answer or
-            Drink.
+            Spin the wheel, reveal a random card, then answer, finish, or drink.
           </p>
         </div>
 
@@ -432,99 +474,99 @@ export default function Games() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
         <div className="glass-soft rounded-3xl p-5">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div>
-                <p className="text-sm text-slate-600 font-semibold">
+              <p className="text-sm text-slate-600 font-semibold">
                 Present Players
-                </p>
-                <h2 className="text-3xl font-extrabold text-slate-900 mt-1">
+              </p>
+              <h2 className="text-3xl font-extrabold text-slate-900 mt-1">
                 {presentParticipants.length}
-                </h2>
+              </h2>
             </div>
 
             <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center text-slate-700">
-                <Users size={22} />
+              <Users size={22} />
             </div>
-            </div>
+          </div>
         </div>
 
         <div className="glass-soft rounded-3xl p-5">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div>
-                <p className="text-sm text-slate-600 font-semibold">Answered</p>
-                <h2 className="text-3xl font-extrabold text-orange-600 mt-1">
+              <p className="text-sm text-slate-600 font-semibold">Answered</p>
+              <h2 className="text-3xl font-extrabold text-orange-600 mt-1">
                 {totalAnswered}
-                </h2>
+              </h2>
             </div>
 
             <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-600">
-                <CheckCircle2 size={22} />
+              <CheckCircle2 size={22} />
             </div>
-            </div>
+          </div>
         </div>
 
         <div className="glass-soft rounded-3xl p-5">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div>
-                <p className="text-sm text-slate-600 font-semibold">Mode</p>
-                <h2 className="text-lg font-extrabold text-slate-900 mt-2">
+              <p className="text-sm text-slate-600 font-semibold">Mode</p>
+              <h2 className="text-lg font-extrabold text-slate-900 mt-2">
                 {mode === "truthOrDare" ? "Truth or Dare" : "Answer or Drink"}
-                </h2>
+              </h2>
             </div>
 
             <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center text-slate-700">
-                <Gamepad2 size={22} />
+              <Gamepad2 size={22} />
             </div>
-            </div>
+          </div>
         </div>
 
         <div className="glass-soft rounded-3xl p-5">
-            <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
             <div>
-                <p className="text-sm text-slate-600 font-semibold">Turn Pool</p>
-                <h2 className="text-lg font-extrabold text-slate-900 mt-2">
+              <p className="text-sm text-slate-600 font-semibold">Turn Pool</p>
+              <h2 className="text-lg font-extrabold text-slate-900 mt-2">
                 {gameState.fairTurnMode
-                    ? `${remainingThisRound} left`
-                    : "Random"}
-                </h2>
+                  ? `${remainingThisRound} left`
+                  : "Random"}
+              </h2>
             </div>
 
             <button
-                onClick={toggleFairTurnMode}
-                className={`rounded-2xl px-3 py-2 text-xs font-extrabold transition ${
+              onClick={toggleFairTurnMode}
+              className={`rounded-2xl px-3 py-2 text-xs font-extrabold transition ${
                 gameState.fairTurnMode
-                    ? "bg-orange-500 text-white shadow-lg"
-                    : "bg-white/60 text-slate-800 hover:bg-white/80"
-                }`}
+                  ? "bg-orange-500 text-white shadow-lg"
+                  : "bg-white/60 text-slate-800 hover:bg-white/80"
+              }`}
             >
-                {gameState.fairTurnMode ? "Fair ON" : "Fair OFF"}
+              {gameState.fairTurnMode ? "Fair ON" : "Fair OFF"}
             </button>
-            </div>
+          </div>
         </div>
 
         <div className="glass-soft rounded-3xl p-5">
-            <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
             <div>
-                <p className="text-sm text-slate-600 font-semibold">Extreme</p>
-                <h2 className="text-lg font-extrabold text-slate-900 mt-2">
-                {gameState.extremeMode ? "ON" : "OFF"}
-                </h2>
+              <p className="text-sm text-slate-600 font-semibold">Extreme</p>
+              <h2 className="text-lg font-extrabold text-slate-900 mt-2">
+                {gameState.extremeMode ? "HIGH" : "OFF"}
+              </h2>
             </div>
 
             <button
-                onClick={toggleExtremeMode}
-                className={`rounded-2xl px-3 py-2 text-xs font-extrabold transition ${
+              onClick={toggleExtremeMode}
+              className={`rounded-2xl px-3 py-2 text-xs font-extrabold transition ${
                 gameState.extremeMode
-                    ? "bg-red-500 text-white shadow-lg"
-                    : "bg-white/60 text-slate-800 hover:bg-white/80"
-                }`}
+                  ? "bg-red-500 text-white shadow-lg"
+                  : "bg-white/60 text-slate-800 hover:bg-white/80"
+              }`}
             >
-                <Flame size={14} className="inline mr-1" />
-                {gameState.extremeMode ? "Off" : "On"}
+              <Flame size={14} className="inline mr-1" />
+              {gameState.extremeMode ? "Off" : "On"}
             </button>
-            </div>
+          </div>
         </div>
-        </div>
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="glass-soft rounded-3xl p-5 md:p-6">
@@ -537,7 +579,7 @@ export default function Games() {
                   : "bg-white/60 text-slate-800 hover:bg-white/80"
               }`}
             >
-              Truth or Dare
+              Random Truth or Dare
             </button>
 
             <button
@@ -562,11 +604,11 @@ export default function Games() {
                 gameState.extremeMode ? "text-red-700" : "text-slate-800"
               }`}
             >
-              Extreme Questions are {gameState.extremeMode ? "ON" : "OFF"}
+              Extreme Questions are {gameState.extremeMode ? "HIGH" : "OFF"}
             </p>
             <p className="text-xs text-slate-600 mt-1">
               {gameState.extremeMode
-                ? "Extreme mode adds more intense, personal, spicy, and dark questions. Players can always choose Drink instead."
+                ? "Extreme mode is weighted higher, so intense, personal, spicy, and dark cards are more likely to appear."
                 : "Turn on Extreme Questions if the group wants a more intense round."}
             </p>
           </div>
@@ -577,7 +619,7 @@ export default function Games() {
             </p>
             <p className="text-xs text-slate-600 mt-1">
               {gameState.fairTurnMode
-                ? "Players will not repeat until everyone present has answered or taken a drink."
+                ? "Players will not repeat until everyone present has answered, completed a dare, or taken a drink."
                 : "Pure random mode is active, so the same player can be picked again anytime."}
             </p>
           </div>
@@ -662,7 +704,7 @@ export default function Games() {
               </p>
             ) : (
               <p className="text-center text-slate-700 font-medium mt-6">
-                Spin the wheel to randomly select from all present participants.
+                Spin the wheel, then tap the hidden card to reveal.
               </p>
             )}
           </div>
@@ -723,7 +765,9 @@ export default function Games() {
                                   : "text-orange-600"
                               }`}
                             >
-                              {alreadyPicked ? "Picked this round" : "Available"}
+                              {alreadyPicked
+                                ? "Picked this round"
+                                : "Available"}
                             </p>
                           )}
                         </div>
@@ -763,22 +807,24 @@ export default function Games() {
 
             <div className="space-y-2 text-sm text-slate-700 font-medium">
               <p>
-                Truth or Dare: spin, choose Truth or Dare, then answer or drink.
+                Random Truth or Dare: spin, tap the card, then answer, finish
+                the dare, or drink.
               </p>
               <p>
-                Answer or Drink: spin, reveal a question, then answer or drink.
+                Answer or Drink: spin, tap the question card, then answer or
+                drink.
               </p>
               <p>
-                Answer adds +1 to answered questions. Drink adds +1 to drink
-                count.
+                Answer/Done adds +1 to answered questions. Drink adds +1 to
+                drink count.
               </p>
               <p>
                 Fair Turn Mode prevents repeat picks until everyone present has
-                answered or taken a drink once.
+                completed a turn once.
               </p>
               <p>
-                Extreme Questions adds more intense prompts. Drink is always an
-                option.
+                Extreme Questions are weighted higher when enabled, so intense
+                prompts are more likely to appear.
               </p>
             </div>
           </div>
@@ -787,8 +833,8 @@ export default function Games() {
 
       {selectedParticipant &&
         createPortal(
-          <div className="fixed inset-0 z-9999 bg-black/25 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="glass-card w-full max-w-xl rounded-4xl p-6 md:p-7 max-h-[90vh] overflow-y-auto my-auto">
+          <div className="fixed inset-0 z-9999 bg-black/25 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto no-scrollbar">
+            <div className="glass-card w-full max-w-xl rounded-4xl p-6 md:p-7 max-h-[90vh] overflow-y-auto no-scrollbar my-auto">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div className="flex items-center gap-4 min-w-0">
                   {selectedParticipant.photo ? (
@@ -826,7 +872,7 @@ export default function Games() {
                 </button>
               </div>
 
-              {mode === "truthOrDare" && modalStep === "choice" && (
+              {modalStep === "picked" && (
                 <div>
                   <div className="bg-white/45 rounded-3xl p-5 text-center mb-5">
                     <p className="text-sm text-slate-600 font-semibold">
@@ -838,23 +884,33 @@ export default function Games() {
                     </h3>
                   </div>
 
+                  <button
+                    type="button"
+                    onClick={revealCard}
+                    className="relative mb-5 w-full text-left group"
+                    style={{
+                      perspective: "1200px",
+                      minHeight: "260px",
+                    }}
+                  >
+                    <div className="absolute inset-0 rounded-3xl bg-orange-500 text-white shadow-xl flex flex-col items-center justify-center text-center p-6 border border-white/50 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-2xl active:scale-95">
+                      <Sparkles size={40} />
+
+                      <h3 className="text-2xl font-extrabold mt-4">
+                        Hidden Card
+                      </h3>
+
+                      <p className="text-sm text-white/85 font-medium mt-2">
+                        Tap or click this card to reveal.
+                      </p>
+
+                      <div className="mt-5 rounded-full bg-white/20 px-4 py-2 text-xs font-extrabold uppercase tracking-wide">
+                        Reveal
+                      </div>
+                    </div>
+                  </button>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      onClick={chooseTruth}
-                      className="btn-primary inline-flex items-center justify-center gap-2"
-                    >
-                      <HelpCircle size={18} />
-                      Truth
-                    </button>
-
-                    <button
-                      onClick={chooseDare}
-                      className="btn-secondary inline-flex items-center justify-center gap-2"
-                    >
-                      <Sparkles size={18} />
-                      Dare
-                    </button>
-
                     <button
                       onClick={handleReSpin}
                       disabled={spinning}
@@ -874,105 +930,106 @@ export default function Games() {
                 </div>
               )}
 
-              {mode === "answerOrDrink" && modalStep === "picked" && (
-                <div>
-                  <div className="bg-white/45 rounded-3xl p-5 text-center mb-5">
-                    <p className="text-sm text-slate-600 font-semibold">
-                      The wheel picked
-                    </p>
-                    <h3 className="text-3xl font-extrabold text-orange-600 mt-1">
-                      {selectedParticipant.nickname ||
-                        selectedParticipant.firstName}
-                    </h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      onClick={revealAnswerOrDrinkQuestion}
-                      className="btn-primary inline-flex items-center justify-center gap-2"
-                    >
-                      <HelpCircle size={18} />
-                      Reveal Question
-                    </button>
-
-                    <button
-                      onClick={handleReSpin}
-                      disabled={spinning}
-                      className="btn-secondary inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <RotateCw size={18} />
-                      Re-spin
-                    </button>
-
-                    <button
-                      onClick={closeModal}
-                      className="sm:col-span-2 bg-white/50 text-slate-800 rounded-2xl px-4 py-3 font-bold hover:bg-white/70 transition"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {modalStep === "question" && currentPrompt && (
                 <div>
                   <div
-                    className={`rounded-3xl p-5 mb-5 ${
-                      currentPrompt.category?.includes("Extreme")
-                        ? "bg-red-500/10"
-                        : "bg-white/45"
-                    }`}
+                    className="relative mb-5"
+                    style={{
+                      perspective: "1200px",
+                      minHeight: "380px",
+                    }}
                   >
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                      <span
-                        className={`text-white rounded-full px-3 py-1 text-xs font-bold ${
-                          currentPrompt.category?.includes("Extreme")
-                            ? "bg-red-500"
-                            : "bg-orange-500"
-                        }`}
+                    <div
+                      className="absolute inset-0 transition-transform duration-700"
+                      style={{
+                        transformStyle: "preserve-3d",
+                        transform: cardRevealed
+                          ? "rotateY(180deg)"
+                          : "rotateY(0deg)",
+                      }}
+                    >
+                      <div
+                        className="absolute inset-0 rounded-3xl bg-orange-500 text-white shadow-xl flex flex-col items-center justify-center text-center p-6 border border-white/50"
+                        style={{
+                          backfaceVisibility: "hidden",
+                        }}
                       >
-                        {currentPrompt.promptType}
-                      </span>
+                        <Sparkles size={38} />
 
-                      <span className="bg-white/70 text-slate-700 rounded-full px-3 py-1 text-xs font-bold">
-                        {currentPrompt.category}
-                      </span>
+                        <h3 className="text-2xl font-extrabold mt-4">
+                          Revealing Card
+                        </h3>
+
+                        <p className="text-sm text-white/85 font-medium mt-2">
+                          Get ready...
+                        </p>
+                      </div>
+
+                      <div
+                        className={`absolute inset-0 rounded-3xl p-5 overflow-y-auto no-scrollbar shadow-xl border border-white/50 ${
+                          currentPrompt.category?.includes("Extreme")
+                            ? "bg-red-500/10"
+                            : "bg-white/70"
+                        }`}
+                        style={{
+                          backfaceVisibility: "hidden",
+                          transform: "rotateY(180deg)",
+                        }}
+                      >
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
+                          <span
+                            className={`text-white rounded-full px-3 py-1 text-xs font-bold ${
+                              currentPrompt.category?.includes("Extreme")
+                                ? "bg-red-500"
+                                : "bg-orange-500"
+                            }`}
+                          >
+                            {currentPrompt.promptType}
+                          </span>
+
+                          <span className="bg-white/80 text-slate-700 rounded-full px-3 py-1 text-xs font-bold">
+                            {currentPrompt.category}
+                          </span>
+                        </div>
+
+                        <h3 className="text-2xl font-extrabold text-slate-900 leading-snug">
+                          {currentPrompt.text}
+                        </h3>
+
+                        <p className="text-slate-700 italic mt-4 leading-relaxed">
+                          {currentPrompt.translation}
+                        </p>
+                      </div>
                     </div>
-
-                    <h3 className="text-2xl font-extrabold text-slate-900 leading-snug">
-                      {currentPrompt.text}
-                    </h3>
-
-                    <p className="text-slate-700 italic mt-3">
-                      {currentPrompt.translation}
-                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      onClick={answerPrompt}
-                      className="btn-primary inline-flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle2 size={18} />
-                      Answer
-                    </button>
+                  {cardRevealed && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        onClick={answerPrompt}
+                        className="btn-primary inline-flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle2 size={18} />
+                        {primaryActionLabel}
+                      </button>
 
-                    <button
-                      onClick={drinkInstead}
-                      className="btn-secondary inline-flex items-center justify-center gap-2"
-                    >
-                      <Beer size={18} />
-                      Drink
-                    </button>
+                      <button
+                        onClick={drinkInstead}
+                        className="btn-secondary inline-flex items-center justify-center gap-2"
+                      >
+                        <Beer size={18} />
+                        Drink
+                      </button>
 
-                    <button
-                      onClick={handleReSpin}
-                      disabled={spinning}
-                      className="sm:col-span-2 bg-white/50 text-slate-800 rounded-2xl px-4 py-3 font-bold hover:bg-white/70 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Re-spin Instead
-                    </button>
-                  </div>
+                      <button
+                        onClick={handleReSpin}
+                        disabled={spinning}
+                        className="sm:col-span-2 bg-white/50 text-slate-800 rounded-2xl px-4 py-3 font-bold hover:bg-white/70 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Re-spin Instead
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
