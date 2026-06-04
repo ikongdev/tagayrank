@@ -579,7 +579,7 @@ export default function Games() {
                   : "bg-white/60 text-slate-800 hover:bg-white/80"
               }`}
             >
-              Random Truth or Dare
+              Truth or Dare
             </button>
 
             <button
@@ -807,7 +807,7 @@ export default function Games() {
 
             <div className="space-y-2 text-sm text-slate-700 font-medium">
               <p>
-                Random Truth or Dare: spin, tap the card, then answer, finish
+                Truth or Dare: spin, tap the card, then answer, finish
                 the dare, or drink.
               </p>
               <p>
