@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   color: #1f2937;
@@ -19,6 +21,13 @@ body {
     radial-gradient(circle at bottom right, rgba(255, 212, 166, 0.35), transparent 28%),
     linear-gradient(135deg, #e7ddd3 0%, #d8c8bb 45%, #c8b19d 100%);
   color: #1f2937;
+}
+
+.app-shell {
+  background:
+    radial-gradient(circle at top left, rgba(251, 146, 60, 0.25), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.22), transparent 32%),
+    linear-gradient(135deg, #fff7ed 0%, #fdebd3 38%, #f8d2a8 100%);
 }
 
 button,
@@ -102,6 +111,143 @@ textarea {
 
 .input-search {
   padding-left: 46px !important;
+}
+
+html.dark {
+  background: #090f1a;
+  color-scheme: dark;
+}
+
+html.dark body {
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.16), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(120, 53, 15, 0.24), transparent 32%),
+    linear-gradient(135deg, #090f1a 0%, #111827 46%, #1c1917 100%);
+  color: #e2e8f0;
+}
+
+html.dark .app-shell {
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.18), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(180, 83, 9, 0.16), transparent 32%),
+    linear-gradient(135deg, #0b1220 0%, #111827 48%, #1c1917 100%);
+}
+
+html.dark .glass-card {
+  background: rgba(15, 23, 42, 0.76);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.32);
+}
+
+html.dark .glass-soft {
+  background: rgba(30, 41, 59, 0.62);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2);
+}
+
+html.dark .input-ui {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #f1f5f9;
+}
+
+html.dark .input-ui::placeholder {
+  color: #94a3b8;
+}
+
+html.dark .btn-secondary {
+  background: rgba(51, 65, 85, 0.72);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
+html.dark .btn-secondary:hover {
+  background: rgba(71, 85, 105, 0.78);
+}
+
+html.dark .page-title {
+  color: #f8fafc;
+}
+
+html.dark .page-subtitle {
+  color: #cbd5e1;
+}
+
+html.dark .text-slate-900 {
+  color: #f8fafc;
+}
+
+html.dark .text-slate-800 {
+  color: #e2e8f0;
+}
+
+html.dark .text-slate-700 {
+  color: #cbd5e1;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: #94a3b8;
+}
+
+html.dark .text-orange-500,
+html.dark .text-orange-600 {
+  color: #fb923c;
+}
+
+html.dark .text-green-600,
+html.dark .text-green-700 {
+  color: #86efac;
+}
+
+html.dark .text-red-500,
+html.dark .text-red-600,
+html.dark .text-red-700 {
+  color: #fda4af;
+}
+
+html.dark .text-blue-600 {
+  color: #93c5fd;
+}
+
+html.dark .bg-white,
+html.dark .bg-white\/80,
+html.dark .bg-white\/70,
+html.dark .bg-white\/60,
+html.dark .bg-white\/55,
+html.dark .bg-white\/50,
+html.dark .bg-white\/45,
+html.dark .bg-white\/40,
+html.dark .bg-white\/25,
+html.dark .bg-white\/20 {
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+html.dark .bg-orange-50 {
+  background-color: rgba(249, 115, 22, 0.18);
+}
+
+html.dark .bg-black\/25 {
+  background-color: rgba(2, 6, 23, 0.68);
+}
+
+html.dark .border-orange-100 {
+  border-color: rgba(251, 146, 60, 0.28);
+}
+
+html.dark .border-white\/70,
+html.dark .border-white\/60,
+html.dark .border-white\/50 {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+html.dark .hover\:bg-white\/80:hover,
+html.dark .hover\:bg-white\/70:hover {
+  background-color: rgba(71, 85, 105, 0.86);
+}
+
+html.dark .hover\:bg-orange-50:hover {
+  background-color: rgba(249, 115, 22, 0.26);
 }
 
 @layer utilities {

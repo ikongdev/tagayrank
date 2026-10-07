@@ -12,7 +12,7 @@ import Games from "./pages/Games";
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(251,146,60,0.25),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.22),transparent_32%),linear-gradient(135deg,#fff7ed_0%,#fdebd3_38%,#f8d2a8_100%)]">
+      <div className="app-shell min-h-screen">
         <div className="min-h-screen flex">
           <Sidebar />
 

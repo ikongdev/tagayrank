@@ -6,6 +6,28 @@
     <link rel="apple-touch-icon" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tagay Rank</title>
+    <script>
+      (() => {
+        const storageKey = "tagayrank-theme";
+        let savedTheme;
+
+        try {
+          savedTheme = localStorage.getItem(storageKey);
+        } catch {
+          savedTheme = null;
+        }
+
+        const theme =
+          savedTheme === "light" || savedTheme === "dark"
+            ? savedTheme
+            : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+
+        document.documentElement.classList.toggle("dark", theme === "dark");
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

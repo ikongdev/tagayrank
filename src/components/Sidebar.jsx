@@ -6,7 +6,10 @@ import {
   History as HistoryIcon,
   Settings,
   Gamepad2,
+  Moon,
+  Sun,
 } from "lucide-react";
+import { useState } from "react";
 
 const links = [
   { name: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -18,6 +21,22 @@ const links = [
 ];
 
 export default function Sidebar() {
+  const [theme, setTheme] = useState(() =>
+    document.documentElement.classList.contains("dark") ? "dark" : "light"
+  );
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+
+    document.documentElement.classList.toggle("dark", nextTheme === "dark");
+    document.documentElement.style.colorScheme = nextTheme;
+    localStorage.setItem("tagayrank-theme", nextTheme);
+    setTheme(nextTheme);
+  };
+
+  const ThemeIcon = theme === "dark" ? Sun : Moon;
+  const themeLabel = theme === "dark" ? "Switch to light theme" : "Switch to dark theme";
+
   return (
     <>
       <aside className="hidden lg:block w-24 shrink-0">
@@ -77,11 +96,25 @@ export default function Sidebar() {
               );
             })}
           </nav>
+
+          <div className="mt-5 pt-4 border-t border-orange-100 w-full">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={themeLabel}
+              aria-pressed={theme === "dark"}
+              title={themeLabel}
+              className="theme-toggle w-full h-12 rounded-2xl flex items-center justify-center text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200"
+            >
+              <ThemeIcon size={21} strokeWidth={2.3} />
+              <span className="sr-only">{themeLabel}</span>
+            </button>
+          </div>
         </div>
       </aside>
 
       <nav className="lg:hidden fixed bottom-4 left-3 right-3 z-50">
-        <div className="rounded-3xl p-2 grid grid-cols-6 gap-1 bg-white border border-orange-100 shadow-xl">
+        <div className="rounded-3xl p-2 grid grid-cols-7 gap-1 bg-white border border-orange-100 shadow-xl">
           {links.map((link) => {
             const Icon = link.icon;
 
@@ -127,6 +160,18 @@ export default function Sidebar() {
               </NavLink>
             );
           })}
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={themeLabel}
+            aria-pressed={theme === "dark"}
+            title={themeLabel}
+            className="theme-toggle h-12 rounded-2xl flex items-center justify-center text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200"
+          >
+            <ThemeIcon size={21} strokeWidth={2.3} />
+            <span className="sr-only">{themeLabel}</span>
+          </button>
         </div>
       </nav>
     </>
