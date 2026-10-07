@@ -420,8 +420,8 @@ export default function Participants() {
 
       {showModal &&
         createPortal(
-          <div className="fixed inset-0 z-9999 bg-black/25 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="glass-card w-full max-w-xl rounded-4xl p-6 md:p-7 max-h-[90vh] overflow-y-auto my-auto">
+          <div className="fixed inset-0 z-9999 bg-black/25 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto no-scrollbar">
+            <div className="glass-card w-full max-w-xl rounded-4xl p-6 md:p-7 max-h-[90vh] overflow-y-auto no-scrollbar my-auto">
               <h2 className="text-2xl font-extrabold text-slate-900">
                 {editingId ? "Edit Participant" : "Add Participant"}
               </h2>
@@ -490,7 +490,7 @@ export default function Participants() {
 
                 <input
                   name="middleName"
-                  placeholder="Middle Name"
+                  placeholder="Middle Name (optional)"
                   value={form.middleName}
                   onChange={handleChange}
                   className="input-ui"

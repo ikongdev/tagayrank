@@ -99,8 +99,8 @@ export function useAppDialog() {
   const dialog =
     dialogState.open &&
     createPortal(
-      <div className="fixed inset-0 z-9999 bg-black/25 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="glass-card w-full max-w-md rounded-4xl p-6 shadow-2xl">
+      <div className="fixed inset-0 z-9999 bg-black/25 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto no-scrollbar">
+        <div className="glass-card w-full max-w-md rounded-4xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar my-auto">
           <div className="flex items-start justify-between gap-4 mb-5">
             <div className="flex items-center gap-4">
               <div
